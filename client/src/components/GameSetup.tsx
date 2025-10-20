@@ -42,7 +42,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
               id="numPlayers"
               type="number"
               min={2}
-              max={12}
+              max={20}
               value={numPlayers}
               onChange={(e) => setNumPlayers(parseInt(e.target.value))}
               data-testid="input-num-players"
@@ -62,7 +62,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
               max={1000}
               step={10}
               value={maxBet}
-              onChange={(e) => setMaxBet(parseInt(e.target.value) || 10)}
+              onChange={(e) => setMaxBet(parseInt(e.target.value))}
               data-testid="input-max-bet"
             />
           </div>
