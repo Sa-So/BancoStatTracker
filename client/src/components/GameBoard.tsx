@@ -103,6 +103,7 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
 
   const updatePlayerProbabilities = () => {
     const deckComposition = getDeckComposition();
+    console.log("deck",deckComposition);
     setPlayers(prevPlayers => 
       prevPlayers.map(player => {
         if (player.card1 && player.card2) {
@@ -192,7 +193,8 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
     const pair2Cards = [selectedPlayer.card2, splitCards[2], splitCards[3]];
     
     const selectedPair = selectedPairIndex === 1 ? pair1Cards : pair2Cards;
-    
+    const notSelectedPair = selectedPairIndex === 1 ? pair2Cards : pair1Cards;
+
     setPlayers(prevPlayers =>
       prevPlayers.map(p =>
         p.id === selectedPlayer.id
@@ -206,8 +208,8 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
       )
     );
     
-    setRevealedCards(prev => [...prev, ...splitCards]);
-    setRemainingCards(prev => prev - 4);
+    setRevealedCards(prev => [...prev, notSelectedPair[1], notSelectedPair[2]]);
+    setRemainingCards(prev => prev - 2);
     updatePlayerProbabilities();
     setSelectedPlayer(null);
   };

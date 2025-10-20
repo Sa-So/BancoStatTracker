@@ -48,9 +48,9 @@ export default function PlayerActionDialog({
   const [drawnRank, setDrawnRank] = useState('');
   
   // For split action
-  const [splitCard1Rank, setSplitCard1Rank] = useState('');
+  const [splitCard1Rank, setSplitCard1Rank] = useState(player.card1?.rank || '');
   const [splitCard2Rank, setSplitCard2Rank] = useState('');
-  const [splitCard3Rank, setSplitCard3Rank] = useState('');
+  const [splitCard3Rank, setSplitCard3Rank] = useState(player.card2?.rank || '');
   const [splitCard4Rank, setSplitCard4Rank] = useState('');
   const [selectedPair, setSelectedPair] = useState<1 | 2>(1);
 
@@ -72,9 +72,9 @@ export default function PlayerActionDialog({
     } else if (action === 'split') {
       if (splitCard1Rank && splitCard2Rank && splitCard3Rank && splitCard4Rank) {
         onSplit([
-          { rank: splitCard1Rank, suit: getRandomSuit() },
+          { rank: player.card1?.rank || '', suit: getRandomSuit() },
           { rank: splitCard2Rank, suit: getRandomSuit() },
-          { rank: splitCard3Rank, suit: getRandomSuit() },
+          { rank: player.card2?.rank || '', suit: getRandomSuit() },
           { rank: splitCard4Rank, suit: getRandomSuit() },
         ], selectedPair);
         resetForm();
@@ -211,7 +211,7 @@ export default function PlayerActionDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold">Pair 1 - Card 1</Label>
-                  <Select value={splitCard1Rank} onValueChange={setSplitCard1Rank}>
+                  <Select disabled value={splitCard1Rank} onValueChange={setSplitCard1Rank}>
                     <SelectTrigger data-testid="select-split-card1-rank">
                       <SelectValue placeholder="Rank" />
                     </SelectTrigger>
@@ -235,7 +235,7 @@ export default function PlayerActionDialog({
 
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold">Pair 2 - Card 1</Label>
-                  <Select value={splitCard3Rank} onValueChange={setSplitCard3Rank}>
+                  <Select disabled value={splitCard3Rank} onValueChange={setSplitCard3Rank}>
                     <SelectTrigger data-testid="select-split-card3-rank">
                       <SelectValue placeholder="Rank" />
                     </SelectTrigger>
