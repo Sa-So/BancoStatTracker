@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import PlayerZone from './PlayerZone';
 import DeckStatus from './DeckStatus';
@@ -136,7 +136,7 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
     );
     setGamePhase('playing');
     setRemainingCards(52 - (numPlayers * 2));
-    setTimeout(updatePlayerProbabilities, 100);
+    // setTimeout(updatePlayerProbabilities, 100);
   };
 
   const handlePlayerClick = (player: Player) => {
@@ -226,6 +226,12 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
     setRevealedCards([]);
     setSelectedPlayer(null);
   };
+
+  useEffect(()=>{
+    if(gamePhase==='playing'){
+      updatePlayerProbabilities();
+    }
+  },[gamePhase,revealedCards, selectedPlayer]);
 
   return (
     <div className="min-h-screen bg-background p-4">
