@@ -32,6 +32,8 @@ interface PlayerActionDialogProps {
 const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
 const SUITS: Array<'♠' | '♥' | '♦' | '♣'> = ['♠', '♥', '♦', '♣'];
 
+const getRandomSuit = () => SUITS[Math.floor(Math.random() * SUITS.length)];
+
 export default function PlayerActionDialog({
   open,
   onClose,
@@ -44,17 +46,12 @@ export default function PlayerActionDialog({
   const [action, setAction] = useState<'bet' | 'skip' | 'split'>('bet');
   const [betAmount, setBetAmount] = useState('');
   const [drawnRank, setDrawnRank] = useState('');
-  const [drawnSuit, setDrawnSuit] = useState<'♠' | '♥' | '♦' | '♣'>('♠');
   
   // For split action
   const [splitCard1Rank, setSplitCard1Rank] = useState('');
-  const [splitCard1Suit, setSplitCard1Suit] = useState<'♠' | '♥' | '♦' | '♣'>('♠');
   const [splitCard2Rank, setSplitCard2Rank] = useState('');
-  const [splitCard2Suit, setSplitCard2Suit] = useState<'♠' | '♥' | '♦' | '♣'>('♠');
   const [splitCard3Rank, setSplitCard3Rank] = useState('');
-  const [splitCard3Suit, setSplitCard3Suit] = useState<'♠' | '♥' | '♦' | '♣'>('♠');
   const [splitCard4Rank, setSplitCard4Rank] = useState('');
-  const [splitCard4Suit, setSplitCard4Suit] = useState<'♠' | '♥' | '♦' | '♣'>('♠');
   const [selectedPair, setSelectedPair] = useState<1 | 2>(1);
 
   const canSplit = player.card1?.rank === player.card2?.rank;
@@ -64,7 +61,7 @@ export default function PlayerActionDialog({
     if (action === 'bet') {
       const amount = parseInt(betAmount);
       if (amount > 0 && amount <= effectiveMaxBet && drawnRank) {
-        onBet(amount, { rank: drawnRank, suit: drawnSuit });
+        onBet(amount, { rank: drawnRank, suit: getRandomSuit() });
         resetForm();
         onClose();
       }
@@ -75,10 +72,10 @@ export default function PlayerActionDialog({
     } else if (action === 'split') {
       if (splitCard1Rank && splitCard2Rank && splitCard3Rank && splitCard4Rank) {
         onSplit([
-          { rank: splitCard1Rank, suit: splitCard1Suit },
-          { rank: splitCard2Rank, suit: splitCard2Suit },
-          { rank: splitCard3Rank, suit: splitCard3Suit },
-          { rank: splitCard4Rank, suit: splitCard4Suit },
+          { rank: splitCard1Rank, suit: getRandomSuit() },
+          { rank: splitCard2Rank, suit: getRandomSuit() },
+          { rank: splitCard3Rank, suit: getRandomSuit() },
+          { rank: splitCard4Rank, suit: getRandomSuit() },
         ], selectedPair);
         resetForm();
         onClose();
@@ -90,7 +87,6 @@ export default function PlayerActionDialog({
     setAction('bet');
     setBetAmount('');
     setDrawnRank('');
-    setDrawnSuit('♠');
     setSplitCard1Rank('');
     setSplitCard2Rank('');
     setSplitCard3Rank('');
@@ -193,128 +189,72 @@ export default function PlayerActionDialog({
                 />
               </div>
               <div className="space-y-2">
-                <Label>Card Drawn</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Select value={drawnRank} onValueChange={setDrawnRank}>
-                      <SelectTrigger data-testid="select-drawn-rank">
-                        <SelectValue placeholder="Rank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RANKS.map(rank => (
-                          <SelectItem key={rank} value={rank}>{rank}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Select value={drawnSuit} onValueChange={(v) => setDrawnSuit(v as any)}>
-                      <SelectTrigger data-testid="select-drawn-suit">
-                        <SelectValue placeholder="Suit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SUITS.map(suit => (
-                          <SelectItem key={suit} value={suit}>{suit}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                <Label>Card Drawn (Rank)</Label>
+                <Select value={drawnRank} onValueChange={setDrawnRank}>
+                  <SelectTrigger data-testid="select-drawn-rank">
+                    <SelectValue placeholder="Select Rank" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RANKS.map(rank => (
+                      <SelectItem key={rank} value={rank}>{rank}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
 
           {action === 'split' && (
             <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-              <p className="text-sm text-muted-foreground">Enter the 4 cards dealt (2 on each original card)</p>
+              <p className="text-sm text-muted-foreground">Enter the 4 card ranks dealt (2 on each original card)</p>
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label className="text-xs font-semibold">Pair 1 - Card 1</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select value={splitCard1Rank} onValueChange={setSplitCard1Rank}>
-                      <SelectTrigger data-testid="select-split-card1-rank">
-                        <SelectValue placeholder="Rank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Select value={splitCard1Suit} onValueChange={(v) => setSplitCard1Suit(v as any)}>
-                      <SelectTrigger data-testid="select-split-card1-suit">
-                        <SelectValue placeholder="Suit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SUITS.map(suit => <SelectItem key={suit} value={suit}>{suit}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={splitCard1Rank} onValueChange={setSplitCard1Rank}>
+                    <SelectTrigger data-testid="select-split-card1-rank">
+                      <SelectValue placeholder="Rank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label className="text-xs font-semibold">Pair 1 - Card 2</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select value={splitCard2Rank} onValueChange={setSplitCard2Rank}>
-                      <SelectTrigger data-testid="select-split-card2-rank">
-                        <SelectValue placeholder="Rank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Select value={splitCard2Suit} onValueChange={(v) => setSplitCard2Suit(v as any)}>
-                      <SelectTrigger data-testid="select-split-card2-suit">
-                        <SelectValue placeholder="Suit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SUITS.map(suit => <SelectItem key={suit} value={suit}>{suit}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={splitCard2Rank} onValueChange={setSplitCard2Rank}>
+                    <SelectTrigger data-testid="select-split-card2-rank">
+                      <SelectValue placeholder="Rank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label className="text-xs font-semibold">Pair 2 - Card 1</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select value={splitCard3Rank} onValueChange={setSplitCard3Rank}>
-                      <SelectTrigger data-testid="select-split-card3-rank">
-                        <SelectValue placeholder="Rank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Select value={splitCard3Suit} onValueChange={(v) => setSplitCard3Suit(v as any)}>
-                      <SelectTrigger data-testid="select-split-card3-suit">
-                        <SelectValue placeholder="Suit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SUITS.map(suit => <SelectItem key={suit} value={suit}>{suit}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={splitCard3Rank} onValueChange={setSplitCard3Rank}>
+                    <SelectTrigger data-testid="select-split-card3-rank">
+                      <SelectValue placeholder="Rank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <Label className="text-xs font-semibold">Pair 2 - Card 2</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select value={splitCard4Rank} onValueChange={setSplitCard4Rank}>
-                      <SelectTrigger data-testid="select-split-card4-rank">
-                        <SelectValue placeholder="Rank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Select value={splitCard4Suit} onValueChange={(v) => setSplitCard4Suit(v as any)}>
-                      <SelectTrigger data-testid="select-split-card4-suit">
-                        <SelectValue placeholder="Suit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SUITS.map(suit => <SelectItem key={suit} value={suit}>{suit}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <Select value={splitCard4Rank} onValueChange={setSplitCard4Rank}>
+                    <SelectTrigger data-testid="select-split-card4-rank">
+                      <SelectValue placeholder="Rank" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RANKS.map(rank => <SelectItem key={rank} value={rank}>{rank}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

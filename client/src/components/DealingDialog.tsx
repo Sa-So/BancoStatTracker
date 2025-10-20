@@ -12,26 +12,29 @@ interface DealingDialogProps {
   onDealCards: (cards: Array<{ rank: string; suit: '♠' | '♥' | '♦' | '♣' }>) => void;
 }
 
-export default function DealingDialog({ open, onClose, phase, players, onDealCards }: DealingDialogProps) {
-  const [cards, setCards] = useState<Array<{ rank: string; suit: '♠' | '♥' | '♦' | '♣' }>>(
-    players.map(() => ({ rank: '', suit: '♠' }))
-  );
+const SUITS: Array<'♠' | '♥' | '♦' | '♣'> = ['♠', '♥', '♦', '♣'];
 
-  const updateCard = (index: number, rank: string, suit: '♠' | '♥' | '♦' | '♣') => {
-    const newCards = [...cards];
-    newCards[index] = { rank, suit };
-    setCards(newCards);
+const getRandomSuit = () => SUITS[Math.floor(Math.random() * SUITS.length)];
+
+export default function DealingDialog({ open, onClose, phase, players, onDealCards }: DealingDialogProps) {
+  const [ranks, setRanks] = useState<string[]>(players.map(() => ''));
+
+  const updateRank = (index: number, rank: string) => {
+    const newRanks = [...ranks];
+    newRanks[index] = rank;
+    setRanks(newRanks);
   };
 
   const handleConfirm = () => {
-    if (cards.every(c => c.rank)) {
+    if (ranks.every(r => r)) {
+      const cards = ranks.map(rank => ({ rank, suit: getRandomSuit() }));
       onDealCards(cards);
-      setCards(players.map(() => ({ rank: '', suit: '♠' })));
+      setRanks(players.map(() => ''));
       onClose();
     }
   };
 
-  const isValid = cards.every(c => c.rank);
+  const isValid = ranks.every(r => r);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -41,7 +44,7 @@ export default function DealingDialog({ open, onClose, phase, players, onDealCar
             Deal {phase === 'first' ? 'First' : 'Second'} Card to Each Player
           </DialogTitle>
           <DialogDescription>
-            Enter the {phase === 'first' ? 'first' : 'second'} card for each player in order
+            Enter the {phase === 'first' ? 'first' : 'second'} card rank for each player in order
           </DialogDescription>
         </DialogHeader>
 
@@ -50,10 +53,8 @@ export default function DealingDialog({ open, onClose, phase, players, onDealCar
             <Card key={player.id} className="p-4">
               <CardInput
                 label={`${player.name}'s ${phase === 'first' ? 'First' : 'Second'} Card`}
-                rank={cards[idx].rank}
-                suit={cards[idx].suit}
-                onRankChange={(rank) => updateCard(idx, rank, cards[idx].suit)}
-                onSuitChange={(suit) => updateCard(idx, cards[idx].rank, suit)}
+                rank={ranks[idx]}
+                onRankChange={(rank) => updateRank(idx, rank)}
                 testId={`player-${player.id}-${phase}`}
               />
             </Card>
