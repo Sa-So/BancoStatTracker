@@ -1,13 +1,25 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import PlayerZone from './PlayerZone';
-import BettingControls from './BettingControls';
 import DeckStatus from './DeckStatus';
-import SplitDialog from './SplitDialog';
+import PlayerActionDialog from './PlayerActionDialog';
+import DealingDialog from './DealingDialog';
 import PlayingCard from './PlayingCard';
 import { RotateCcw, Play } from 'lucide-react';
 
-// TODO: remove mock functionality
+interface Player {
+  id: number;
+  name: string;
+  balance: number;
+  card1?: { rank: string; suit: '♠' | '♥' | '♦' | '♣' };
+  card2?: { rank: string; suit: '♠' | '♥' | '♦' | '♣' };
+  probabilities?: {
+    win: number;
+    lose: number;
+    doubleLoss: number;
+  };
+}
+
 interface GameBoardProps {
   numPlayers: number;
   maxBet: number;
@@ -15,75 +27,205 @@ interface GameBoardProps {
 }
 
 export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameBoardProps) {
-  // TODO: remove mock state - this will be replaced with real game state from backend
   const [gamePhase, setGamePhase] = useState<'dealing-first' | 'dealing-second' | 'playing'>('dealing-first');
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [remainingCards, setRemainingCards] = useState(52);
-  const [revealedCards, setRevealedCards] = useState<Array<{ rank: string; suit: string }>>([]);
-  const [showSplitDialog, setShowSplitDialog] = useState(false);
-  
-  // TODO: remove mock players data
-  const [players] = useState(
+  const [players, setPlayers] = useState<Player[]>(
     Array.from({ length: numPlayers }, (_, i) => ({
       id: i + 1,
       name: `Player ${i + 1}`,
       balance: startingBalance,
-      card1: gamePhase !== 'dealing-first' ? { rank: ['A', 'K', '7', 'Q', '3', '9', 'J', '5'][i], suit: ['♠', '♥', '♦', '♣'][i % 4] as '♠' | '♥' | '♦' | '♣' } : undefined,
-      card2: gamePhase === 'playing' ? { rank: ['K', '3', 'Q', 'A', '8', '2', '10', '6'][i], suit: ['♥', '♦', '♣', '♠'][i % 4] as '♠' | '♥' | '♦' | '♣' } : undefined,
-      probabilities: gamePhase === 'playing' ? {
-        win: 45 + Math.random() * 20,
-        lose: 35 + Math.random() * 20,
-        doubleLoss: 8 + Math.random() * 12,
-      } : undefined,
     }))
   );
+  const [remainingCards, setRemainingCards] = useState(52);
+  const [revealedCards, setRevealedCards] = useState<Array<{ rank: string; suit: string }>>([]);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [showDealingDialog, setShowDealingDialog] = useState(false);
 
-  const handleDealFirstCards = () => {
-    console.log('Dealing first cards to all players');
+  const calculateProbabilities = (card1: { rank: string }, card2: { rank: string }, deckComposition: Map<string, number>) => {
+    const rankValues: { [key: string]: number } = {
+      'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13
+    };
+    
+    const val1 = rankValues[card1.rank];
+    const val2 = rankValues[card2.rank];
+    const min = Math.min(val1, val2);
+    const max = Math.max(val1, val2);
+    
+    let winCount = 0;
+    let loseCount = 0;
+    let doubleLossCount = 0;
+    let totalRemaining = 0;
+    
+    deckComposition.forEach((count, rank) => {
+      const value = rankValues[rank];
+      totalRemaining += count;
+      
+      if (value > min && value < max) {
+        winCount += count;
+      } else if (value === min || value === max) {
+        doubleLossCount += count;
+      } else {
+        loseCount += count;
+      }
+    });
+    
+    if (totalRemaining === 0) {
+      return { win: 0, lose: 0, doubleLoss: 0 };
+    }
+    
+    return {
+      win: (winCount / totalRemaining) * 100,
+      lose: (loseCount / totalRemaining) * 100,
+      doubleLoss: (doubleLossCount / totalRemaining) * 100,
+    };
+  };
+
+  const getDeckComposition = () => {
+    const composition = new Map<string, number>();
+    const allRanks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    
+    allRanks.forEach(rank => composition.set(rank, 4));
+    
+    players.forEach(player => {
+      if (player.card1) {
+        composition.set(player.card1.rank, (composition.get(player.card1.rank) || 0) - 1);
+      }
+      if (player.card2) {
+        composition.set(player.card2.rank, (composition.get(player.card2.rank) || 0) - 1);
+      }
+    });
+    
+    revealedCards.forEach(card => {
+      composition.set(card.rank, (composition.get(card.rank) || 0) - 1);
+    });
+    
+    return composition;
+  };
+
+  const updatePlayerProbabilities = () => {
+    const deckComposition = getDeckComposition();
+    setPlayers(prevPlayers => 
+      prevPlayers.map(player => {
+        if (player.card1 && player.card2) {
+          return {
+            ...player,
+            probabilities: calculateProbabilities(player.card1, player.card2, deckComposition),
+          };
+        }
+        return player;
+      })
+    );
+  };
+
+  const handleDealFirstCards = (cards: Array<{ rank: string; suit: '♠' | '♥' | '♦' | '♣' }>) => {
+    setPlayers(prevPlayers =>
+      prevPlayers.map((player, idx) => ({
+        ...player,
+        card1: cards[idx],
+      }))
+    );
     setGamePhase('dealing-second');
     setRemainingCards(52 - numPlayers);
   };
 
-  const handleDealSecondCards = () => {
-    console.log('Dealing second cards to all players');
+  const handleDealSecondCards = (cards: Array<{ rank: string; suit: '♠' | '♥' | '♦' | '♣' }>) => {
+    setPlayers(prevPlayers =>
+      prevPlayers.map((player, idx) => ({
+        ...player,
+        card2: cards[idx],
+      }))
+    );
     setGamePhase('playing');
     setRemainingCards(52 - (numPlayers * 2));
+    setTimeout(updatePlayerProbabilities, 100);
   };
 
-  const handleBet = (amount: number) => {
-    console.log(`Player ${currentPlayerIndex + 1} bets ₹${amount}`);
-    // TODO: remove mock - implement real bet logic
-    const drawnCard = { rank: 'K', suit: '♥' };
-    setRevealedCards([...revealedCards, drawnCard]);
-    setRemainingCards(remainingCards - 1);
-    setCurrentPlayerIndex((currentPlayerIndex + 1) % numPlayers);
+  const handlePlayerClick = (player: Player) => {
+    if (gamePhase === 'playing' && player.card1 && player.card2) {
+      setSelectedPlayer(player);
+    }
+  };
+
+  const handleBet = (amount: number, drawnCard: { rank: string; suit: '♠' | '♥' | '♦' | '♣' }) => {
+    if (!selectedPlayer || !selectedPlayer.card1 || !selectedPlayer.card2) return;
+    
+    const rankValues: { [key: string]: number } = {
+      'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13
+    };
+    
+    const val1 = rankValues[selectedPlayer.card1.rank];
+    const val2 = rankValues[selectedPlayer.card2.rank];
+    const drawnVal = rankValues[drawnCard.rank];
+    const min = Math.min(val1, val2);
+    const max = Math.max(val1, val2);
+    
+    let balanceChange = 0;
+    if (drawnVal > min && drawnVal < max) {
+      balanceChange = amount;
+    } else if (drawnVal === min || drawnVal === max) {
+      balanceChange = -amount * 2;
+    } else {
+      balanceChange = -amount;
+    }
+    
+    setPlayers(prevPlayers =>
+      prevPlayers.map(p =>
+        p.id === selectedPlayer.id
+          ? { ...p, balance: p.balance + balanceChange }
+          : p
+      )
+    );
+    
+    setRevealedCards(prev => [...prev, drawnCard]);
+    setRemainingCards(prev => prev - 1);
+    updatePlayerProbabilities();
+    setSelectedPlayer(null);
   };
 
   const handleSkip = () => {
-    console.log(`Player ${currentPlayerIndex + 1} skips`);
-    setCurrentPlayerIndex((currentPlayerIndex + 1) % numPlayers);
+    setSelectedPlayer(null);
   };
 
-  const handleSplit = () => {
-    console.log(`Player ${currentPlayerIndex + 1} splits`);
-    setShowSplitDialog(true);
-  };
-
-  const handleSelectPair = (pairIndex: 1 | 2) => {
-    console.log(`Player ${currentPlayerIndex + 1} selected pair ${pairIndex}`);
-    // TODO: remove mock - implement real split logic
+  const handleSplit = (splitCards: Array<{ rank: string; suit: '♠' | '♥' | '♦' | '♣' }>, selectedPairIndex: number) => {
+    if (!selectedPlayer || !selectedPlayer.card1 || !selectedPlayer.card2) return;
+    
+    const pair1Cards = [selectedPlayer.card1, splitCards[0], splitCards[1]];
+    const pair2Cards = [selectedPlayer.card2, splitCards[2], splitCards[3]];
+    
+    const selectedPair = selectedPairIndex === 1 ? pair1Cards : pair2Cards;
+    
+    setPlayers(prevPlayers =>
+      prevPlayers.map(p =>
+        p.id === selectedPlayer.id
+          ? {
+              ...p,
+              balance: p.balance - 10,
+              card1: selectedPair[1],
+              card2: selectedPair[2],
+            }
+          : p
+      )
+    );
+    
+    setRevealedCards(prev => [...prev, ...splitCards]);
+    setRemainingCards(prev => prev - 4);
+    updatePlayerProbabilities();
+    setSelectedPlayer(null);
   };
 
   const handleNewRound = () => {
-    console.log('Starting new round');
     setGamePhase('dealing-first');
-    setCurrentPlayerIndex(0);
+    setPlayers(prevPlayers =>
+      prevPlayers.map(p => ({
+        ...p,
+        card1: undefined,
+        card2: undefined,
+        probabilities: undefined,
+      }))
+    );
     setRemainingCards(52);
     setRevealedCards([]);
+    setSelectedPlayer(null);
   };
-
-  const currentPlayer = players[currentPlayerIndex];
-  const canSplit = currentPlayer?.card1?.rank === currentPlayer?.card2?.rank;
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -100,7 +242,7 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
           <div className="flex justify-center mb-8">
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold">Deal First Card to Each Player</h2>
-              <Button size="lg" onClick={handleDealFirstCards} data-testid="button-deal-first">
+              <Button size="lg" onClick={() => setShowDealingDialog(true)} data-testid="button-deal-first">
                 <Play className="w-4 h-4 mr-2" />
                 Deal First Cards
               </Button>
@@ -112,7 +254,7 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
           <div className="flex justify-center mb-8">
             <div className="text-center space-y-4">
               <h2 className="text-xl font-semibold">Deal Second Card to Each Player</h2>
-              <Button size="lg" onClick={handleDealSecondCards} data-testid="button-deal-second">
+              <Button size="lg" onClick={() => setShowDealingDialog(true)} data-testid="button-deal-second">
                 <Play className="w-4 h-4 mr-2" />
                 Deal Second Cards
               </Button>
@@ -120,20 +262,26 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
           </div>
         )}
 
+        {gamePhase === 'playing' && (
+          <div className="mb-6 p-4 bg-primary/10 rounded-lg text-center">
+            <p className="text-sm text-muted-foreground">Click on any player to take their turn</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {players.map((player, idx) => (
-                <PlayerZone
-                  key={player.id}
-                  playerNumber={player.id}
-                  name={player.name}
-                  balance={player.balance}
-                  card1={player.card1}
-                  card2={player.card2}
-                  probabilities={player.probabilities}
-                  isActive={gamePhase === 'playing' && idx === currentPlayerIndex}
-                />
+              {players.map((player) => (
+                <div key={player.id} onClick={() => handlePlayerClick(player)}>
+                  <PlayerZone
+                    playerNumber={player.id}
+                    name={player.name}
+                    balance={player.balance}
+                    card1={player.card1}
+                    card2={player.card2}
+                    probabilities={player.probabilities}
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -144,18 +292,6 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
               totalCards={52}
               revealedCards={revealedCards}
             />
-
-            {gamePhase === 'playing' && currentPlayer && (
-              <BettingControls
-                maxBet={maxBet}
-                playerBalance={currentPlayer.balance}
-                canSplit={canSplit}
-                splitCost={10}
-                onBet={handleBet}
-                onSkip={handleSkip}
-                onSplit={handleSplit}
-              />
-            )}
 
             {revealedCards.length > 0 && revealedCards[revealedCards.length - 1] && (
               <div className="p-4 bg-card rounded-lg border border-card-border">
@@ -173,23 +309,25 @@ export default function GameBoard({ numPlayers, maxBet, startingBalance }: GameB
         </div>
       </div>
 
-      {currentPlayer && (
-        <SplitDialog
-          open={showSplitDialog}
-          onClose={() => setShowSplitDialog(false)}
-          originalCard1={currentPlayer.card1 || { rank: 'A', suit: '♠' }}
-          originalCard2={currentPlayer.card2 || { rank: 'A', suit: '♥' }}
-          newPair1={[
-            { rank: 'K', suit: '♦' },
-            { rank: '3', suit: '♣' },
-          ]}
-          newPair2={[
-            { rank: 'Q', suit: '♠' },
-            { rank: '7', suit: '♥' },
-          ]}
-          onSelectPair={handleSelectPair}
+      {selectedPlayer && (
+        <PlayerActionDialog
+          open={!!selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+          player={selectedPlayer}
+          maxBet={maxBet}
+          onBet={handleBet}
+          onSkip={handleSkip}
+          onSplit={handleSplit}
         />
       )}
+
+      <DealingDialog
+        open={showDealingDialog}
+        onClose={() => setShowDealingDialog(false)}
+        phase={gamePhase === 'dealing-first' ? 'first' : 'second'}
+        players={players}
+        onDealCards={gamePhase === 'dealing-first' ? handleDealFirstCards : handleDealSecondCards}
+      />
     </div>
   );
 }

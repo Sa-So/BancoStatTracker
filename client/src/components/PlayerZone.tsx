@@ -33,7 +33,7 @@ export default function PlayerZone({
 }: PlayerZoneProps) {
   return (
     <Card 
-      className={`p-4 transition-all ${isActive ? 'ring-2 ring-primary shadow-lg' : ''}`}
+      className={`p-4 transition-all cursor-pointer hover-elevate ${isActive ? 'ring-2 ring-primary shadow-lg' : ''}`}
       data-testid={`player-zone-${playerNumber}`}
     >
       <div className="flex items-center justify-between mb-4">
