@@ -14,9 +14,9 @@ interface GameSetupProps {
 }
 
 export default function GameSetup({ onStartGame }: GameSetupProps) {
-  const [numPlayers, setNumPlayers] = useState(4);
+  const [numPlayers, setNumPlayers] = useState(10);
   const [maxBet, setMaxBet] = useState(50);
-  const [startingBalance, setStartingBalance] = useState(500);
+  const [startingBalance, setStartingBalance] = useState(200);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,12 +42,12 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
               id="numPlayers"
               type="number"
               min={2}
-              max={8}
+              max={12}
               value={numPlayers}
-              onChange={(e) => setNumPlayers(parseInt(e.target.value) || 2)}
+              onChange={(e) => setNumPlayers(parseInt(e.target.value))}
               data-testid="input-num-players"
             />
-            <p className="text-xs text-muted-foreground">Between 2 and 8 players</p>
+            <p className="text-xs text-muted-foreground">Between 2 and 12 players</p>
           </div>
 
           <div className="space-y-2">
@@ -79,7 +79,7 @@ export default function GameSetup({ onStartGame }: GameSetupProps) {
               max={10000}
               step={50}
               value={startingBalance}
-              onChange={(e) => setStartingBalance(parseInt(e.target.value) || 100)}
+              onChange={(e) => setStartingBalance(parseInt(e.target.value))}
               data-testid="input-starting-balance"
             />
           </div>
